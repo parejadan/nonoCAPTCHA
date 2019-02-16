@@ -5,7 +5,7 @@ import os.path
 import sys
 
 version_info = (1, 9, 0, 1)
-__version__ = "{}.{}.{}".format(*version_info)
+__version__ = "{}.{}.{}.{}".format(*version_info)
 
 
 authors = (("Michael Mooney", "mikeyy@mikeyy.com"),)
