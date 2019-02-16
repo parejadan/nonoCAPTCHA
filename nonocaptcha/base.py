@@ -120,3 +120,23 @@ class Base(Clicker):
 
     def log(self, message):
         self.logger.debug(f"{self.proc_id} {message}")
+
+    def deface(self, target_site_recaptcha_anchor):
+        return self.load_jslib("deface.js").replace(
+            "<target_site_recaptcha_anchor>",
+            target_site_recaptcha_anchor)
+
+    def load_jslib(self, js_file):
+        jslib_dir = "jslib"
+        resource_path = os.path.join(package_dir, jslib_dir, js_file)
+        try:
+            with open(resource_path, "r") as reader:
+                return reader.read().replace("\n", "")
+        except FileNotFoundError as ex:
+            error_message = "{}{}{}".format(
+                "Loading pip package resource failure. We expected",
+                " [{}]".format(os.path.join("<pip_lib_path>", jslib_dir, js_file)),
+                " yet what we got was [{}]".format(resource_path))
+            raise StandardError(error_message)
+        except Exception:
+            raise

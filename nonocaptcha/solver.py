@@ -212,19 +212,7 @@ class Solver(Base):
         Google reCAPTCHA's demo page. Looking for alternatives for
         circumvention.
         """
-        deface_js = (
-                """() => {
-    widget = jQuery("<div id=recaptcha-widget>").appendTo("body");
-    parent.window.recapReady = function(){
-        grecaptcha.render(document.getElementById('recaptcha-widget'), {
-            sitekey: '%s',
-            callback: function () {
-                console.log('recaptcha callback');
-            }
-        });
-    }
-}""" % self.sitekey)
-        await self.page.evaluate(deface_js)
+        await self.page.evaluate(self.deface(self.sitekey))
         recaptcha_url = ("https://www.google.com/recaptcha/api.js"
                          "?onload=recapReady&render=explicit")
         await self.page.addScriptTag(url=recaptcha_url)
