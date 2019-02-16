@@ -55,6 +55,7 @@ class Base(Clicker):
     deface_data = os.path.join(package_dir, settings["data"]["deface_html"])
     jquery_data = os.path.join(package_dir, settings["data"]["jquery_js"])
     override_data = os.path.join(package_dir, settings["data"]["override_js"])
+    js_libs = {}
 
     async def get_frames(self):
         self.checkbox_frame = next(
@@ -126,12 +127,18 @@ class Base(Clicker):
             "<target_site_recaptcha_anchor>",
             target_site_recaptcha_anchor)
 
-    def load_jslib(self, js_file):
+    def load_jslib(self, js_file, force_load=False):
+        if js_file in self.js_libs.keys():
+            return self.js_libs[js_file]
+
         jslib_dir = "jslib"
         resource_path = os.path.join(package_dir, jslib_dir, js_file)
+
         try:
             with open(resource_path, "r") as reader:
-                return reader.read().replace("\n", "")
+                self.js_libs[js_file] = reader.read().replace("\n", "")
+
+            return self.js_libs[js_file]
         except FileNotFoundError as ex:
             error_message = "{}{}{}".format(
                 "Loading pip package resource failure. We expected",
