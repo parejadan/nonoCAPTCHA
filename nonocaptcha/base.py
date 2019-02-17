@@ -131,7 +131,7 @@ class Base(Clicker):
         if js_file in self.js_libs.keys():
             return self.js_libs[js_file]
 
-        jslib_dir = "jslib"
+        jslib_dir = "data"
         resource_path = os.path.join(package_dir, jslib_dir, js_file)
 
         try:
