@@ -4,6 +4,7 @@
 """ ***IN TESTING*** """
 
 import os
+import shutil
 import asyncio
 import threading
 from PIL import Image
@@ -30,7 +31,7 @@ class SolveImage(Base):
     url = 'https://www.google.com/searchbyimage?site=search&sa=X&image_url='
     ip_address = 'http://91.121.226.109'
 
-    def __init__(self, browser, image_frame, proxy, proxy_auth, proc_id):
+    def __init__(self, browser, image_frame, proxy, proxy_auth, proc_id, cleanup=True):
         self.browser = browser
         self.image_frame = image_frame
         self.proxy = proxy
@@ -39,6 +40,7 @@ class SolveImage(Base):
         self.cur_image_path = None
         self.title = None
         self.pieces = None
+        self.cleanup = cleanup
 
     async def get_images(self):
         table = await self.image_frame.querySelector('table')
@@ -79,7 +81,7 @@ class SolveImage(Base):
         self.title = title
         print(f'Image of {title}')
         self.pieces = pieces
-        os.mkdir(PICTURES)
+        self.create_cache()
         self.cur_image_path = os.path.join(PICTURES, f'{hash(image)}')
         os.mkdir(self.cur_image_path)
         file_path = os.path.join(self.cur_image_path, f'{title}.jpg')
@@ -111,6 +113,17 @@ class SolveImage(Base):
         return await util.get_page(
             image_url, self.proxy, self.proxy_auth, binary=True
         )
+
+    def create_cache(self):
+        if self.cleanup:
+            shutil.rmtree(PICTURES)
+
+        try:
+            os.mkdir(PICTURES)
+        except FileExistsError:
+            pass
+        except Exception:
+            raise
 
     async def reverse_image_search(self, image_no):
         image_path = f'{self.ip_address}:8080/{image_no}.jpg'

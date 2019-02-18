@@ -54,7 +54,7 @@ class Solver(Base):
         self.proc_id = self.proc_count
         type(self).proc_count += 1
 
-    async def start(self):
+    async def start(self, solve_image=True):
         """Begin solving"""
         start = time.time()
         result = None
@@ -71,7 +71,7 @@ class Solver(Base):
             await self.set_bypass_csp()
             await self.goto()
             await self.wait_for_frames()
-            result = await self.solve()
+            result = await self.solve(solve_image)
         except BaseException as e:
             print(traceback.format_exc())
             self.log(f"{e} {type(e)}")
@@ -249,7 +249,7 @@ class Solver(Base):
         except Exception as exc:
             raise PageError(f"Page raised an error: `{exc}`")
 
-    async def solve(self):
+    async def solve(self, solve_image=True):
         """Click checkbox, otherwise attempt to decipher audio"""
         await self.get_frames()
         await self.loop.create_task(self.wait_for_checkbox())
@@ -258,7 +258,7 @@ class Solver(Base):
             result = await self.loop.create_task(
                 self.check_detection(self.animation_timeout))
         except SafePassage:
-            return await self._solve()
+            return await self._solve(solve_image)
         else:
             if result["status"] == "success":
                 code = await self.g_recaptcha_response()
@@ -268,9 +268,7 @@ class Solver(Base):
             else:
                 return result
 
-    async def _solve(self):
-        # Coming soon...
-        solve_image = False
+    async def _solve(self, solve_image):
         if solve_image:
             self.image = SolveImage(
                 self.browser,
