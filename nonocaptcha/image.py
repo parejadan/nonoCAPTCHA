@@ -14,8 +14,6 @@ from nonocaptcha import util
 from nonocaptcha.base import Base, settings
 from nonocaptcha import package_dir
 
-PICTURES = os.path.join(package_dir, settings['data']['pictures'])
-
 
 class Handler(BaseHTTPRequestHandler):
     base_path = None
@@ -29,7 +27,7 @@ class Handler(BaseHTTPRequestHandler):
 
 class SolveImage(Base):
     url = 'https://www.google.com/searchbyimage?site=search&sa=X&image_url='
-    ip_address = 'http://91.121.226.109'
+    ip_address = settings['image']['host']
 
     def __init__(self, browser, image_frame, proxy, proxy_auth, proc_id, cleanup=True):
         self.browser = browser
@@ -41,6 +39,7 @@ class SolveImage(Base):
         self.title = None
         self.pieces = None
         self.cleanup = cleanup
+        self.image_save_path = os.path.join(os.getcwd(), settings['data']['pictures'])
 
     async def get_images(self):
         table = await self.image_frame.querySelector('table')
@@ -74,20 +73,23 @@ class SolveImage(Base):
             await self.click_reload_button()
 
     async def solve_by_image(self):
+        # cycle through the captcha options until we find something solvable
         await self.cycle_to_solvable()
         title = await self.pictures_of()
         pieces = 9  # TODO: crop other sizes
+        # we've found something to work with, now download and split the image
         image = await self.download_image()
         self.title = title
         print(f'Image of {title}')
         self.pieces = pieces
         self.create_cache()
-        self.cur_image_path = os.path.join(PICTURES, f'{hash(image)}')
+        self.cur_image_path = os.path.join(self.image_save_path, f'{hash(image)}')
         os.mkdir(self.cur_image_path)
         file_path = os.path.join(self.cur_image_path, f'{title}.jpg')
         await util.save_file(file_path, image, binary=True)
         image_obj = Image.open(file_path)
         util.split_image(image_obj, pieces, self.cur_image_path)
+        # identify each prominant object in split segments
         self.start_app()
         queries = [self.reverse_image_search(i) for i in range(pieces)]
         results = await asyncio.gather(*queries, return_exceptions=True)
@@ -116,10 +118,15 @@ class SolveImage(Base):
 
     def create_cache(self):
         if self.cleanup:
-            shutil.rmtree(PICTURES)
+            try:
+                shutil.rmtree(self.image_save_path)
+            except FileNotFoundError:
+                pass
+            except Exception:
+                raise
 
         try:
-            os.mkdir(PICTURES)
+            os.makedirs(self.image_save_path, exist_ok=True)
         except FileExistsError:
             pass
         except Exception:
