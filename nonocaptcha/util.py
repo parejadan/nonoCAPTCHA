@@ -11,6 +11,7 @@ import asyncio
 import pickle
 import requests
 import itertools
+import shutil
 
 from functools import partial, wraps
 
@@ -125,3 +126,19 @@ def split_image(image_obj, pieces, save_to):
             cropped = image_obj.crop((interval*x, interval*y,
                                       interval*(x+1), interval*(y+1)))
             cropped.save(os.path.join(save_to, f'{y*row_length+x}.jpg'))
+
+
+def clean_path(path):
+    try:
+        shutil.rmtree(path)
+    except FileNotFoundError:
+        pass
+    except Exception:
+        raise
+
+
+def create_path(path):
+    try:
+        os.makedirs(path, exist_ok=True, mode=0o777)
+    except Exception:
+        raise

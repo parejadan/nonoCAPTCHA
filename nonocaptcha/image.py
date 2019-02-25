@@ -27,7 +27,8 @@ class Handler(BaseHTTPRequestHandler):
 
 class SolveImage(Base):
     url = 'https://www.google.com/searchbyimage?site=search&sa=X&image_url='
-    ip_address = settings['image']['host']
+    ip_address = settings['image']['host']['ip']
+    root_path = settings['image']['host']['root']
 
     def __init__(self, browser, image_frame, proxy, proxy_auth, proc_id, cleanup=True):
         self.browser = browser
@@ -39,7 +40,9 @@ class SolveImage(Base):
         self.title = None
         self.pieces = None
         self.cleanup = cleanup
-        self.image_save_path = os.path.join(os.getcwd(), settings['data']['pictures'])
+        self.image_save_path = os.path.join(self.root_path, settings['data']['pictures'])
+        self.create_root_if_needed()
+        self.create_cache()
 
     async def get_images(self):
         table = await self.image_frame.querySelector('table')
@@ -82,9 +85,8 @@ class SolveImage(Base):
         self.title = title
         print(f'Image of {title}')
         self.pieces = pieces
-        self.create_cache()
         self.cur_image_path = os.path.join(self.image_save_path, f'{hash(image)}')
-        os.mkdir(self.cur_image_path)
+        util.create_path(self.cur_image_path)
         file_path = os.path.join(self.cur_image_path, f'{title}.jpg')
         await util.save_file(file_path, image, binary=True)
         image_obj = Image.open(file_path)
@@ -118,19 +120,12 @@ class SolveImage(Base):
 
     def create_cache(self):
         if self.cleanup:
-            try:
-                shutil.rmtree(self.image_save_path)
-            except FileNotFoundError:
-                pass
-            except Exception:
-                raise
+            util.clean_path(self.image_save_path)
+        util.create_path(self.image_save_path)
 
-        try:
-            os.makedirs(self.image_save_path, exist_ok=True)
-        except FileExistsError:
-            pass
-        except Exception:
-            raise
+    def create_root_if_needed(self):
+        util.create_path(self.root_path)
+        os.chdir(self.root_path)
 
     async def reverse_image_search(self, image_no):
         image_path = f'{self.ip_address}:8080/{image_no}.jpg'
