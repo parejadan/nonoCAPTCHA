@@ -12,7 +12,9 @@ import traceback
 from pyppeteer.util import merge_dict
 from user_agent import generate_navigator_js
 
-from nonocaptcha import util
+from nonocaptcha.utils.navigate import get_page
+from nonocaptcha.utils.iomanage import load_file
+from nonocaptcha.utils.js import JS_LIBS
 from nonocaptcha.base import Base
 from nonocaptcha.audio import SolveAudio
 from nonocaptcha.image import SolveImage
@@ -98,7 +100,7 @@ class Solver(Base):
         async def handle_request(request):
             if (request.url == self.url):
                 if self.retain_source:
-                    source = await util.get_page(self.url)
+                    source = await get_page(self.url)
                     filters = ['grecaptcha.render', 'g-recaptcha']
                     if not [filter for filter in filters if filter in source]:
                         source = insert(source)
@@ -188,8 +190,8 @@ class Solver(Base):
         """Emulate another browser's navigator properties and set webdriver
            false, inject jQuery.
         """
-        jquery_js = await util.load_file(self.jquery_data)
-        override_js = await util.load_file(self.override_data)
+        jquery_js = await load_file(self.jquery_data)
+        override_js = await load_file(self.override_data)
         navigator_config = generate_navigator_js(
             os=("linux", "mac", "win"), navigator=("chrome"))
         navigator_config["mediaDevices"] = False
@@ -213,7 +215,7 @@ class Solver(Base):
         Google reCAPTCHA's demo page. Looking for alternatives for
         circumvention.
         """
-        await self.page.evaluate(self.deface(self.sitekey))
+        await self.page.evaluate(JS_LIBS.deface(self.sitekey))
         recaptcha_url = ("https://www.google.com/recaptcha/api.js"
                          "?onload=recapReady&render=explicit")
         await self.page.addScriptTag(url=recaptcha_url)
@@ -221,16 +223,9 @@ class Solver(Base):
     async def wait_for_frames(self):
         try:
             """Wait for image iframe to appear on dom before continuing."""
-            func = """() => {
-        frame = jQuery("iframe[src*='api2/bframe']")
-        jQuery(frame).load( function() {
-            window.ready_eddy = true;
-        });
-        if(window.ready_eddy){
-            return true;
-        }
-    }"""
-            await self.page.waitForFunction(func, timeout=self.iframe_timeout)
+            await self.page.waitForFunction(
+                JS_LIBS.iframe_wait_load,
+                timeout=self.iframe_timeout)
         except asyncio.TimeoutError:
             raise IframeError("Problem locating reCAPTCHA frames")
 

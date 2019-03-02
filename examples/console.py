@@ -9,7 +9,8 @@ import sys
 
 from async_timeout import timeout
 
-from nonocaptcha import util
+from nonocaptcha.utils.navigate import get_page
+from nonocaptcha.utils.iomanage import load_file
 from nonocaptcha.proxy import ProxyDB
 from nonocaptcha.solver import Solver
 
@@ -63,9 +64,9 @@ class Run(object):
             print("Proxies loading...")
             protos = ["http://", "https://"]
             if any(p in proxy_source for p in protos):
-                f = util.get_page
+                f = get_page
             else:
-                f = util.load_file
+                f = load_file
 
             result = await f(proxy_source)
             self.proxies.add(result.split('\n'))

@@ -20,10 +20,10 @@ from pydub import AudioSegment
 from pocketsphinx.pocketsphinx import Decoder
 
 from nonocaptcha.base import settings
-from nonocaptcha import util
+from nonocaptcha.utils.decorators import threaded
+from nonocaptcha.utils.navigate import get_page
 
-
-@util.threaded
+@threaded
 def mp3_to_wav(mp3_filename):
     wav_filename = mp3_filename.replace(".mp3", ".wav")
     segment = AudioSegment.from_mp3(mp3_filename)
@@ -61,7 +61,7 @@ class DeepSpeech(object):
 class Sphinx(object):
     MODEL_DIR = settings["speech"]["pocketsphinx"]["model_dir"]
 
-    @util.threaded
+    @threaded
     def build_decoder(self):
         config = Decoder.default_config()
         config.set_string(
@@ -166,7 +166,7 @@ class Amazon(object):
             transcript_uri = status["TranscriptionJob"]["Transcript"][
                 "TranscriptFileUri"
             ]
-            data = json.loads(await util.get_page(transcript_uri))
+            data = json.loads(await get_page(transcript_uri))
             transcript = data["results"]["transcripts"][0]["transcript"]
             return transcript
 
@@ -181,7 +181,7 @@ class Amazon(object):
 class Azure(object):
     SUB_KEY = settings["speech"]["azure"]["api_subkey"]
 
-    @util.threaded
+    @threaded
     def extract_json_body(self, response):
         pattern = "^\r\n"  # header separator is an empty line
         m = re.search(pattern, response, re.M)
@@ -189,7 +189,7 @@ class Azure(object):
             response[m.end():]
         )  # assuming that content type is json
 
-    @util.threaded
+    @threaded
     def build_message(self, req_id, payload):
         message = b""
         timestamp = datetime.utcnow().isoformat()

@@ -4,7 +4,7 @@ import os
 from pydub import AudioSegment, playback
 
 from nonocaptcha.base import settings
-from nonocaptcha.util import threaded
+from nonocaptcha.utils.decoractors import threaded
 from nonocaptcha.speech import Amazon, Azure, Sphinx, DeepSpeech
 
 

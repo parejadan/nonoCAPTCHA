@@ -10,7 +10,9 @@ import threading
 from PIL import Image
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-from nonocaptcha import util
+from nonocaptcha.utils.iomanage import create_path, clean_path, save_file
+from nonocaptcha.utils.imgparse import split_image
+from nonocaptcha.utils.navigate import get_page
 from nonocaptcha.base import Base, settings
 from nonocaptcha import package_dir
 
@@ -86,11 +88,11 @@ class SolveImage(Base):
         print(f'Image of {title}')
         self.pieces = pieces
         self.cur_image_path = os.path.join(self.image_save_path, f'{hash(image)}')
-        util.create_path(self.cur_image_path)
+        create_path(self.cur_image_path)
         file_path = os.path.join(self.cur_image_path, f'{title}.jpg')
-        await util.save_file(file_path, image, binary=True)
+        await save_file(file_path, image, binary=True)
         image_obj = Image.open(file_path)
-        util.split_image(image_obj, pieces, self.cur_image_path)
+        split_image(image_obj, pieces, self.cur_image_path)
         # identify each prominant object in split segments
         self.start_app()
         queries = [self.reverse_image_search(i) for i in range(pieces)]
@@ -114,17 +116,17 @@ class SolveImage(Base):
 
     async def download_image(self):
         image_url = await self.get_image_url()
-        return await util.get_page(
+        return await get_page(
             image_url, self.proxy, self.proxy_auth, binary=True
         )
 
     def create_cache(self):
         if self.cleanup:
-            util.clean_path(self.image_save_path)
-        util.create_path(self.image_save_path)
+            clean_path(self.image_save_path)
+        create_path(self.image_save_path)
 
     def create_root_if_needed(self):
-        util.create_path(self.root_path)
+        create_path(self.root_path)
         os.chdir(self.root_path)
 
     async def reverse_image_search(self, image_no):

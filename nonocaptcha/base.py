@@ -8,6 +8,7 @@ import logging
 import os
 import random
 
+from nonocaptcha.utils.js import JS_LIBS
 from nonocaptcha import package_dir
 from nonocaptcha.exceptions import SafePassage, TryAgain
 
@@ -71,39 +72,8 @@ class Base(Clicker):
         """Checks if "Try again later", "please solve more" modal appears
         or success"""
 
-        func = """(function() {
-    checkbox_frame = parent.window.jQuery(
-        "iframe[src*='api2/anchor']").contents();
-    image_frame = parent.window.jQuery(
-        "iframe[src*='api2/bframe']").contents();
-
-    var bot_header = jQuery(".rc-doscaptcha-header-text", image_frame)
-    if(bot_header.length){
-        if(bot_header.text().indexOf("Try again later") > -1){
-            parent.window.wasdetected = true;
-            return true;
-        }
-    }
-
-    var try_again_header = jQuery(
-        ".rc-audiochallenge-error-message", image_frame)
-    if(try_again_header.length){
-        if(try_again_header.text().indexOf("please solve more") > -1){
-            try_again_header.text('Trying again...')
-            parent.window.tryagain = true;
-            return true;
-        }
-    }
-
-    var checkbox_anchor = jQuery("#recaptcha-anchor", checkbox_frame);
-    if(checkbox_anchor.attr("aria-checked") === "true"){
-        parent.window.success = true;
-        return true;
-    }
-
-})()"""
         try:
-            await self.page.waitForFunction(func, timeout=timeout)
+            await self.page.waitForFunction(JS_LIBS.check_detection, timeout=timeout)
         except asyncio.TimeoutError:
             raise SafePassage()
         else:
@@ -119,29 +89,3 @@ class Base(Clicker):
 
     def log(self, message):
         self.logger.debug(f"{self.proc_id} {message}")
-
-    def deface(self, target_site_recaptcha_anchor):
-        return self.load_jslib("deface.js").replace(
-            "<target_site_recaptcha_anchor>",
-            target_site_recaptcha_anchor)
-
-    def load_jslib(self, js_file, force_load=False):
-        if js_file in self.js_libs.keys():
-            return self.js_libs[js_file]
-
-        jslib_dir = "data"
-        resource_path = os.path.join(package_dir, jslib_dir, js_file)
-
-        try:
-            with open(resource_path, "r") as reader:
-                self.js_libs[js_file] = reader.read().replace("\n", "")
-
-            return self.js_libs[js_file]
-        except FileNotFoundError as ex:
-            error_message = "{}{}{}".format(
-                "Loading pip package resource failure. We expected",
-                " [{}]".format(os.path.join("<pip_lib_path>", jslib_dir, js_file)),
-                " yet what we got was [{}]".format(resource_path))
-            raise StandardError(error_message)
-        except Exception:
-            raise

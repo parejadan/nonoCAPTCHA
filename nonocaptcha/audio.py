@@ -10,7 +10,8 @@ import tempfile
 from asyncio import TimeoutError, CancelledError
 from aiohttp.client_exceptions import ClientError
 
-from nonocaptcha import util
+from nonocaptcha.utils.navigate import get_page
+from nonocaptcha.utils.iomanage import save_file
 from nonocaptcha.speech import Amazon, Azure, Sphinx, DeepSpeech
 from nonocaptcha.base import Base
 from nonocaptcha.exceptions import DownloadError, ReloadError, TryAgain
@@ -62,7 +63,7 @@ class SolveAudio(Base):
         self.log("Downloading audio file")
         try:
             audio_data = await self.loop.create_task(
-                util.get_page(
+                get_page(
                     audio_url,
                     proxy=self.proxy,
                     proxy_auth=self.proxy_auth,
@@ -82,7 +83,7 @@ class SolveAudio(Base):
                     speech = DeepSpeech()
                 tmpd = tempfile.mkdtemp()
                 tmpf = os.path.join(tmpd, "audio.mp3")
-                await util.save_file(tmpf, data=audio_data, binary=True)
+                await save_file(tmpf, data=audio_data, binary=True)
                 answer = await self.loop.create_task(speech.get_text(tmpf))
                 shutil.rmtree(tmpd)
             else:

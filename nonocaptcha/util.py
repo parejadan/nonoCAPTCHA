@@ -13,8 +13,6 @@ import requests
 import itertools
 import shutil
 
-from functools import partial, wraps
-
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 

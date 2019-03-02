@@ -19,7 +19,8 @@ from functools import partial
 from pathlib import Path
 from threading import RLock
 
-from nonocaptcha import util
+from nonocaptcha.utils.navigate import get_page
+from nonocaptcha.utils.iomanage import load_file
 from nonocaptcha.proxy import ProxyDB
 from nonocaptcha.solver import Solver
 
@@ -185,9 +186,9 @@ async def load_proxies():
         if proxy_source is None:
             return
         if any(p in proxy_source for p in protos):
-            f = util.get_page
+            f = get_page
         else:
-            f = util.load_file
+            f = load_file
 
         try:
             result = await f(proxy_source)
