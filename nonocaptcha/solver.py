@@ -16,8 +16,6 @@ from nonocaptcha.utils.navigate import get_page
 from nonocaptcha.utils.iomanage import load_file
 from nonocaptcha.utils.js import JS_LIBS
 from nonocaptcha.base import Base
-from nonocaptcha.audio import SolveAudio
-from nonocaptcha.image import SolveImage
 from nonocaptcha.launcher import Launcher
 from nonocaptcha.exceptions import (SafePassage, ButtonError, IframeError,
                                     PageError)
@@ -265,6 +263,8 @@ class Solver(Base):
 
     async def _solve(self, solve_image):
         if solve_image:
+            from nonocaptcha.image import SolveImage
+
             self.image = SolveImage(
                 self.browser,
                 self.image_frame,
@@ -273,6 +273,8 @@ class Solver(Base):
                 self.proc_id)
             solve = self.image.solve_by_image
         else:
+            from nonocaptcha.audio import SolveAudio
+
             self.audio = SolveAudio(
                 self.page,
                 self.loop,
