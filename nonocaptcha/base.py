@@ -50,10 +50,9 @@ class Base(Clicker):
     page_load_timeout = settings["timeout"]["page_load"] * 1000
     iframe_timeout = settings["timeout"]["iframe"] * 1000
     animation_timeout = settings["timeout"]["animation"] * 1000
-    speech_service = settings["speech"]["service"]
-    deface_data = os.path.join(package_dir, settings["data"]["deface_html"])
-    jquery_data = os.path.join(package_dir, settings["data"]["jquery_js"])
-    override_data = os.path.join(package_dir, settings["data"]["override_js"])
+    deface_data = os.path.join(package_dir, 'data', 'deface.html')
+    jquery_data = os.path.join(package_dir, 'data', 'jquery.js')
+    override_data = os.path.join(package_dir, 'data', 'override.js')
     js_libs = {}
 
     async def get_frames(self):

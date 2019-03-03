@@ -6,30 +6,18 @@
 import os
 import shutil
 import asyncio
-import threading
 from PIL import Image
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from nonocaptcha.utils.iomanage import create_path, clean_path, save_file
 from nonocaptcha.utils.imgparse import split_image
 from nonocaptcha.utils.navigate import get_page
+from nonocaptcha.utils.server import get_file_server
 from nonocaptcha.base import Base, settings
 from nonocaptcha import package_dir
 
 
-class Handler(BaseHTTPRequestHandler):
-    base_path = None
-
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        image_file = os.path.join(self.base_path, self.path.lstrip('/'))
-        self.wfile.write(open(image_file, 'rb').read())
-
-
 class SolveImage(Base):
-    url = 'https://www.google.com/searchbyimage?site=search&sa=X&image_url='
-    ip_address = settings['image']['host']['ip']
+    search_url = 'https://www.google.com/searchbyimage?site=search&sa=X&image_url='
     root_path = settings['image']['host']['root']
 
     def __init__(self, browser, image_frame, proxy, proxy_auth, proc_id, cleanup=True):
@@ -43,6 +31,7 @@ class SolveImage(Base):
         self.pieces = None
         self.cleanup = cleanup
         self.image_save_path = os.path.join(self.root_path, settings['data']['pictures'])
+        self.file_server = get_file_server(settings['image']['host'])
         self.create_root_if_needed()
         self.create_cache()
 
@@ -94,7 +83,7 @@ class SolveImage(Base):
         image_obj = Image.open(file_path)
         split_image(image_obj, pieces, self.cur_image_path)
         # identify each prominant object in split segments
-        self.start_app()
+        self.file_server.start(self.cur_image_path)
         queries = [self.reverse_image_search(i) for i in range(pieces)]
         results = await asyncio.gather(*queries, return_exceptions=True)
         for r in results:
@@ -130,10 +119,9 @@ class SolveImage(Base):
         os.chdir(self.root_path)
 
     async def reverse_image_search(self, image_no):
-        image_path = f'{self.ip_address}:8080/{image_no}.jpg'
-        url = self.url + image_path
+        image_path = self.file_server.get_url(f'{image_no}.jpg')
         page = await self.browser.newPage()
-        await page.goto(url)
+        await page.goto(self.search_url + image_path)
         card = await page.querySelector('div.card-section')
         if card:
             best_guess = await page.evaluate('el => el.children[1].innerText',
@@ -144,8 +132,3 @@ class SolveImage(Base):
         await asyncio.sleep(100)
         await page.close()
         return self.title in best_guess
-
-    def start_app(self):
-        Handler.base_path = self.cur_image_path
-        httpd = HTTPServer(('0.0.0.0', 8080), Handler)
-        threading.Thread(target=httpd.serve_forever).start()

@@ -13,11 +13,13 @@ from aiohttp.client_exceptions import ClientError
 from nonocaptcha.utils.navigate import get_page
 from nonocaptcha.utils.iomanage import save_file
 from nonocaptcha.speech import Amazon, Azure, Sphinx, DeepSpeech
-from nonocaptcha.base import Base
+from nonocaptcha.base import Base, settings
 from nonocaptcha.exceptions import DownloadError, ReloadError, TryAgain
 
 
 class SolveAudio(Base):
+    speech_service = settings["speech"]["service"]
+
     def __init__(self, page, loop, proxy, proxy_auth, proc_id):
         self.page = page
         self.loop = loop
