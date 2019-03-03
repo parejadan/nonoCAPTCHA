@@ -20,8 +20,8 @@ class FileServer:
 
     def start(self, base_path):
         Handler.base_path = base_path
-        self.httpd = HTTPServer(('0.0.0.0', port), Handler)
-        threading.Thread(target.httpd.serve_forever).start()
+        self.httpd = HTTPServer(('0.0.0.0', self.port), Handler)
+        threading.Thread(target=self.httpd.serve_forever).start()
 
     def get_url(file_name):
         return f'{self.ip}:{self.port}/{file_name}'

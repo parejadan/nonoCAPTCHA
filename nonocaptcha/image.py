@@ -31,7 +31,6 @@ class SolveImage(Base):
         self.cleanup = cleanup
         self.image_save_path = os.path.join(self.outpath, 'pictures')
         self.file_server = get_file_server(settings['image']['host'])
-        self.create_root_if_needed()
         self.create_cache()
 
     async def get_images(self):

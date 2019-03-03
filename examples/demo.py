@@ -8,8 +8,7 @@ options = {
     "ignoreHTTPSErrors": True,
     "args": ["--timeout 5", "--no-sandbox"],
     "executablePath":"/c/Program Files (x86)/Google/Chrome/Application/chrome.exe"}
-client = Solver(
-    pageurl, sitekey, options=options)
+client = Solver(pageurl, sitekey, options=options)
 
 solution = asyncio.get_event_loop().run_until_complete(client.start())
 if solution:

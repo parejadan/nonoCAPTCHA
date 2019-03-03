@@ -4,26 +4,17 @@
 """ Solver module. """
 
 import asyncio
-import json
 import sys
 import time
 import traceback
 
-from pyppeteer.util import merge_dict
-from user_agent import generate_navigator_js
-
 from nonocaptcha.utils.navigate import get_page
-from nonocaptcha.utils.iomanage import load_file
 from nonocaptcha.utils.js import JS_LIBS
-from nonocaptcha.base import Base
-from nonocaptcha.launcher import Launcher
-from nonocaptcha.exceptions import (SafePassage, ButtonError, IframeError,
-                                    PageError)
+from nonocaptcha.browsers.drivers import RawDriver
+from nonocaptcha.exceptions import SafePassage, ButtonError, IframeError
 
 
-class Solver(Base):
-    browser = None
-    launcher = None
+class Solver(RawDriver):
     proc_count = 0
     proc = None
 
@@ -41,14 +32,15 @@ class Solver(Base):
                              # Useful for bypassing high-security thresholds.
                              # This can cause problems if the page has a widget
                              # already or doesn't include a </body> tag.
-        **kwargs
-                ):
-        self.options = merge_dict(options, kwargs)
+        **kwargs):
+        super().__init__(
+            options=options,
+            proxy=proxy,
+            proxy_auth=proxy_auth,
+            loop=loop,
+            **kwargs)
         self.url = pageurl
         self.sitekey = sitekey
-        self.loop = loop or asyncio.get_event_loop()
-        self.proxy = f'http://{proxy}' if proxy else proxy
-        self.proxy_auth = proxy_auth
         self.enable_injection = enable_injection
         self.retain_source = retain_source
         self.proc_id = self.proc_count
@@ -62,7 +54,6 @@ class Solver(Base):
         result = None
         try:
             self.browser = await self.get_new_browser()
-            self.page = await self.browser.newPage()
             if self.should_block_images:
                 await self.block_images()
             if self.enable_injection:
@@ -71,7 +62,7 @@ class Solver(Base):
                 await self.page.authenticate(self.proxy_auth)
             self.log(f'Starting solver with proxy {self.proxy}')
             await self.set_bypass_csp()
-            await self.goto()
+            await self.goto(self.url)
             await self.wait_for_frames()
             result = await self.solve(solve_image)
         except BaseException as e:
@@ -106,12 +97,18 @@ class Solver(Base):
                         source = insert(source)
                 else:
                     source = insert()
-                await request.respond({
-                    'status': 200,
-                    'contentType': 'text/html',
-                    'body': source})
+                try:
+                    await request.respond({
+                        'status': 200,
+                        'contentType': 'text/html',
+                        'body': source})
+                except:
+                    pass
             else:
-                await request.continue_()
+                try:
+                    await request.continue_()
+                except:
+                    pass
         recaptcha_source = 'https://www.google.com/recaptcha/api.js?hl=en'
         script_tag = (f'<script src={recaptcha_source} async defer></script>')
         widget_code = (f'<div class=g-recaptcha data-sitekey={self.sitekey}>'
@@ -124,7 +121,10 @@ class Solver(Base):
             if (request.resourceType == 'image'):
                 await request.abort()
             else:
-                await request.continue_()
+                try:
+                    await request.continue_()
+                except:
+                    pass
         await self.enable_interception()
         self.page.on('request', handle_request)
 
@@ -139,76 +139,6 @@ class Solver(Base):
     async def set_bypass_csp(self):
         await self.page._client.send(
             'Page.setBypassCSP', {'enabled': True})
-
-    async def get_new_browser(self):
-        """
-        Get a new browser, set proxy and arguments
-        """
-        args = [
-            '--cryptauth-http-host ""',
-            '--disable-accelerated-2d-canvas',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-browser-side-navigation',
-            '--disable-client-side-phishing-detection',
-            '--disable-default-apps',
-            '--disable-dev-shm-usage',
-            '--disable-device-discovery-notifications',
-            '--disable-extensions',
-            '--disable-features=site-per-process',
-            '--disable-hang-monitor',
-            '--disable-java',
-            '--disable-popup-blocking',
-            '--disable-prompt-on-repost',
-            '--disable-setuid-sandbox',
-            '--disable-sync',
-            '--disable-translate',
-            '--disable-web-security',
-            '--disable-webgl',
-            '--metrics-recording-only',
-            '--no-first-run',
-            '--safebrowsing-disable-auto-update',
-            '--no-sandbox',
-            # Automation arguments
-            '--enable-automation',
-            '--password-store=basic',
-            '--use-mock-keychain']
-        if self.proxy:
-            args.append(f'--proxy-server={self.proxy}')
-        if 'args1' in self.options:
-            args.extend(self.options.pop('args'))
-        if 'headless' in self.options:
-            self.headless = self.options['headless']
-        self.options.update({
-            'userDataDir': self.browser_data,
-            'headless': self.headless,
-            'args': args,
-            #  Silence Pyppeteer logs
-            'logLevel': 'CRITICAL'})
-        self.launcher = Launcher(self.options)
-        browser = await self.launcher.launch()
-        return browser
-
-    async def cloak_navigator(self):
-        """
-        Emulate another browser's navigator properties
-        and set webdriver false, inject jQuery.
-        """
-        jquery_js = await load_file(self.jquery_data)
-        override_js = await load_file(self.override_data)
-        navigator_config = generate_navigator_js(
-            os=('linux', 'mac', 'win'), navigator=('chrome'))
-        navigator_config['mediaDevices'] = False
-        navigator_config['webkitGetUserMedia'] = False
-        navigator_config['mozGetUserMedia'] = False
-        navigator_config['getUserMedia'] = False
-        navigator_config['webkitRTCPeerConnection'] = False
-        navigator_config['webdriver'] = False
-        dump = json.dumps(navigator_config)
-        _navigator = f'const _navigator = {dump};'
-        await self.page.evaluateOnNewDocument(
-            '() => {\n%s\n%s\n%s}' % (_navigator, jquery_js, override_js))
-        return navigator_config['userAgent']
 
     async def deface(self):
         """ ***DEPRECATED***
@@ -234,23 +164,6 @@ class Solver(Base):
                 timeout=self.iframe_timeout)
         except asyncio.TimeoutError:
             raise IframeError('Problem locating reCAPTCHA frames')
-
-    async def goto(self):
-        """
-        Navigate to address
-        """
-        user_agent = await self.cloak_navigator()
-        await self.page.setUserAgent(user_agent)
-        try:
-            await self.loop.create_task(
-                self.page.goto(
-                    self.url,
-                    timeout=self.page_load_timeout,
-                    waitUntil='domcontentloaded',))
-        except asyncio.TimeoutError:
-            raise PageError('Page loading timed-out')
-        except Exception as exc:
-            raise PageError(f'Page raised an error: `{exc}`')
 
     async def solve(self, solve_image=True):
         """

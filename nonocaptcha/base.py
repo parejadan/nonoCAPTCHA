@@ -9,6 +9,7 @@ import os
 import random
 
 from nonocaptcha.utils.js import JS_LIBS
+from nonocaptcha.utils.iomanage import create_path
 from nonocaptcha import package_dir
 from nonocaptcha.exceptions import SafePassage, TryAgain
 
@@ -41,9 +42,6 @@ class Clicker:
 
 
 class Base(Clicker):
-    logger = logging.getLogger(__name__)
-    if settings['debug']:
-        logger.setLevel('DEBUG')
     proc_id = 0
     headless = settings['headless']
     should_block_images = settings['block_images']
@@ -56,7 +54,22 @@ class Base(Clicker):
     js_libs = {}
     outpath = os.path.join(os.getcwd(), 'data')
     browser_data = os.path.join(outpath, 'browserData')
-    create_path(outpath)
+
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        if settings['debug']:
+            self.logger.setLevel('DEBUG')
+
+        self.create_working_folders()
+
+    def create_working_folders(self):
+        configured = settings.get('sandbox_dirs')
+        if configured:
+            self.browser_data = configured.get('browser_profile', self.browser_data)
+            self.outpath = configured.get('cache', self.outpath)
+
+        create_path(self.outpath)
+        create_path(self.browser_data)
 
     async def get_frames(self):
         self.checkbox_frame = next(
