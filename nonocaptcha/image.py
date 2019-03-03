@@ -18,7 +18,6 @@ from nonocaptcha import package_dir
 
 class SolveImage(Base):
     search_url = 'https://www.google.com/searchbyimage?site=search&sa=X&image_url='
-    root_path = settings['image']['host']['root']
 
     def __init__(self, browser, image_frame, proxy, proxy_auth, proc_id, cleanup=True):
         self.browser = browser
@@ -30,7 +29,7 @@ class SolveImage(Base):
         self.title = None
         self.pieces = None
         self.cleanup = cleanup
-        self.image_save_path = os.path.join(self.root_path, settings['data']['pictures'])
+        self.image_save_path = os.path.join(self.outpath, 'pictures')
         self.file_server = get_file_server(settings['image']['host'])
         self.create_root_if_needed()
         self.create_cache()
@@ -113,10 +112,6 @@ class SolveImage(Base):
         if self.cleanup:
             clean_path(self.image_save_path)
         create_path(self.image_save_path)
-
-    def create_root_if_needed(self):
-        create_path(self.root_path)
-        os.chdir(self.root_path)
 
     async def reverse_image_search(self, image_no):
         image_path = self.file_server.get_url(f'{image_no}.jpg')

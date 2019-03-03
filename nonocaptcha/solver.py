@@ -180,6 +180,7 @@ class Solver(Base):
         if 'headless' in self.options:
             self.headless = self.options['headless']
         self.options.update({
+            'userDataDir': self.browser_data,
             'headless': self.headless,
             'args': args,
             #  Silence Pyppeteer logs

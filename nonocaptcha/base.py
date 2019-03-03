@@ -54,6 +54,9 @@ class Base(Clicker):
     jquery_data = os.path.join(package_dir, 'data', 'jquery.js')
     override_data = os.path.join(package_dir, 'data', 'override.js')
     js_libs = {}
+    outpath = os.path.join(os.getcwd(), 'data')
+    browser_data = os.path.join(outpath, 'browserData')
+    create_path(outpath)
 
     async def get_frames(self):
         self.checkbox_frame = next(
