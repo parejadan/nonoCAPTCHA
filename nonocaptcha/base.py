@@ -52,6 +52,7 @@ class Base(Clicker):
     jquery_data = os.path.join(package_dir, 'data', 'jquery.js')
     override_data = os.path.join(package_dir, 'data', 'override.js')
     js_libs = {}
+    executable_path = settings.get('paths', {}).get('executable', None)
     outpath = os.path.join(os.getcwd(), 'data')
     browser_data = os.path.join(outpath, 'browserData')
 
@@ -63,7 +64,7 @@ class Base(Clicker):
         self.create_working_folders()
 
     def create_working_folders(self):
-        configured = settings.get('sandbox_dirs')
+        configured = settings.get('paths')
         if configured:
             self.browser_data = configured.get('browser_profile', self.browser_data)
             self.outpath = configured.get('cache', self.outpath)

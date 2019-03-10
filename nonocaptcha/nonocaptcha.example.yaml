@@ -9,7 +9,8 @@ timeout:
     animation: 5  # Length to wait for animations, such as spinning wheel after
                   # clicking the widget's checkbox
 
-sandbox_dirs:
+paths:
+    executable: /c/Program Files (x86)/Google/Chrome/Application/chrome.exe  # if not supplied, download chronium
     browser_profile: c:/sandbox/ergit/spotbot/data/browserData  # where browser data (history) should live
     cache: /c/sandbox/ergit/spotbot/data  # path to dump image solving data
 

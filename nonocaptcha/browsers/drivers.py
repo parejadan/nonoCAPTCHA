@@ -62,6 +62,8 @@ class RawDriver(Base):
             args.extend(self.options.pop('args'))
         if 'headless' in self.options:
             self.headless = self.options['headless']
+        if 'executablePath' not in self.options:
+            self.options['executablePath'] = self.executable_path
         self.options.update({
             'userDataDir': self.browser_data,
             'headless': self.headless,
