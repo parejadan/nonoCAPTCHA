@@ -9,6 +9,10 @@ timeout:
     animation: 5  # Length to wait for animations, such as spinning wheel after
                   # clicking the widget's checkbox
 
+sandbox_dirs:
+    browser_profile: c:/sandbox/ergit/spotbot/data/browserData  # where browser data (history) should live
+    cache: /c/sandbox/ergit/spotbot/data  # path to dump image solving data
+
 speech:
     service: pocketsphinx
     deepspeech:
@@ -23,8 +27,7 @@ speech:
         region:
         s3_bucket:
 
-data:
-    deface_html: data/deface.html
-    jquery_js: data/jquery.js
-    override_js: data/override.js
-    pictures: data/pictures
+image:
+    host:
+        ip: "0.0.0.0"  # some DNS
+        port: 8000
