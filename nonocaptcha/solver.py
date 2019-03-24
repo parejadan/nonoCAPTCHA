@@ -131,11 +131,6 @@ class Solver(RawDriver):
     async def enable_interception(self):
         await self.page.setRequestInterception(True)
 
-    async def cleanup(self):
-        if self.launcher:
-            await self.launcher.killChrome()
-            self.log('Browser closed')
-
     async def set_bypass_csp(self):
         await self.page._client.send(
             'Page.setBypassCSP', {'enabled': True})

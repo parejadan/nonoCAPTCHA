@@ -96,6 +96,11 @@ class RawDriver(Base):
             '() => {\n%s\n%s\n%s}' % (_navigator, jquery_js, override_js))
         return navigator_config['userAgent']
 
+    async def cleanup(self):
+        if self.launcher:
+            await self.launcher.killChrome()
+            self.log('Browser closed')
+
     async def goto(self, url):
         """
         Navigate to address
