@@ -66,6 +66,9 @@ class RawDriver(Base):
             self.options['executablePath'] = self.executable_path
         if self.slow_down:
             self.options['slowMo'] = self.slow_down
+        if self.window:
+            args.append(
+                f'--window-size={self.window["width"]},{self.window["height"]}')
         self.options.update({
             'userDataDir': self.browser_data,
             'headless': self.headless,
@@ -75,6 +78,9 @@ class RawDriver(Base):
         self.launcher = Launcher(self.options)
         self.browser = await self.launcher.launch()
         self.page = await self.browser.newPage()
+        if self.window:
+            await self.page.setViewport(self.window)
+
         return self.browser
 
     async def cloak_navigator(self):
