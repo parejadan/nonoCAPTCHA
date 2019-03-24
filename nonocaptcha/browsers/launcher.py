@@ -37,7 +37,7 @@ class Launcher(launcher.Launcher):
         self.chromeClosed = True
         if self.options.get('appMode', False):
             self.options['headless'] = False
-        self._tmp_user_data_dir = None
+        self._tmp_user_data_dir = self.options.get('userDataDir', None)
         self._parse_args()
         if self.options.get('devtools'):
             self.chrome_args.append('--auto-open-devtools-for-tabs')
