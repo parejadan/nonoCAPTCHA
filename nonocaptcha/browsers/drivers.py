@@ -64,6 +64,8 @@ class RawDriver(Base):
             self.headless = self.options['headless']
         if 'executablePath' not in self.options:
             self.options['executablePath'] = self.executable_path
+        if self.slow_down:
+            self.options['slowMo'] = self.slow_down
         self.options.update({
             'userDataDir': self.browser_data,
             'headless': self.headless,

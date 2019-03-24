@@ -2,6 +2,7 @@ debug: true  # Output current actions and resulting state in console
 headless: false  # Run Chrome without a GUI (background)
 keyboard_traverse: false  # Emulate keyboard shortcuts instead of mouse behaviors
 block_images: true  # Reject requests to all image resource types
+slow_down: 3  # browser action time slowed down to default 3 secs (not needed for element load time - more for avoiding bot detection)
 
 timeout:
     page_load: 30  # Length to wait for page load in seconds
@@ -11,8 +12,8 @@ timeout:
 
 paths:
     executable: /c/Program Files (x86)/Google/Chrome/Application/chrome.exe  # if not supplied, download chronium
-    browser_profile: c:/sandbox/ergit/spotbot/data/browserData  # where browser data (history) should live
-    cache: /c/sandbox/ergit/spotbot/data  # path to dump image solving data
+    browser_profile: ./data/browserData  # where browser data (history) should live
+    cache: ./data  # path to dump image solving data
 
 speech:
     service: pocketsphinx
