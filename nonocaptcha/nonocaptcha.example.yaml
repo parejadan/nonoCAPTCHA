@@ -15,6 +15,11 @@ paths:
     browser_profile: ./data/browserData  # where browser data (history) should live
     cache: ./data  # path to dump image solving data
 
+window:
+    width: 1200
+    height: 800
+    user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36
+
 speech:
     service: pocketsphinx
     deepspeech:

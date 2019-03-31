@@ -87,6 +87,8 @@ class RawDriver(Base):
         self.page = await self.browser.newPage()
         if self.window and not use_default:
             await self.page.setViewport(self.window)
+        if self.user_agent:
+            await self.page.setUserAgent(self.user_agent)
 
     def workon_page(self, page_num):
         self.page = self.page_queue[page_num]

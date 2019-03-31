@@ -57,6 +57,7 @@ class Base(Clicker):
     browser_data = os.path.join(outpath, 'browserData')
     slow_down = settings.get('slow_down', None)
     window = settings.get('window', None)
+    user_agent = settings.get('window', {}).get('user_agent', None)
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
