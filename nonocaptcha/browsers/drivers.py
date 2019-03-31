@@ -14,6 +14,7 @@ from nonocaptcha.exceptions import PageError
 class RawDriver(Base):
     launcher = None
     browser = None
+    page_queue = []
 
     def __init__(self, options, proxy=None, proxy_auth=None, loop=None, **kwargs):
         super().__init__()
@@ -77,11 +78,21 @@ class RawDriver(Base):
             'logLevel': 'CRITICAL'})
         self.launcher = Launcher(self.options)
         self.browser = await self.launcher.launch()
-        self.page = await self.browser.newPage()
-        if self.window:
-            await self.page.setViewport(self.window)
+        self.page_queue = await self.browser.pages()
+        await self.set_newpage()
 
         return self.browser
+
+    async def set_newpage(self, use_default=False):
+        self.page = await self.browser.newPage()
+        if self.window and not use_default:
+            await self.page.setViewport(self.window)
+
+    def workon_page(self, page_num):
+        self.page = self.page_queue[page_num]
+
+    def workon_first_page(self):
+        self.workon_page(0)
 
     async def cloak_navigator(self):
         """
