@@ -56,7 +56,9 @@ class RawDriver(Base):
             # Automation arguments
             '--enable-automation',
             '--password-store=basic',
-            '--use-mock-keychain']
+            '--use-mock-keychain',
+            # allow user agent override
+            '--enable-features=NetworkService']
         if self.proxy:
             args.append(f'--proxy-server={self.proxy}')
         if 'args1' in self.options:
@@ -88,7 +90,12 @@ class RawDriver(Base):
         if self.window and not use_default:
             await self.page.setViewport(self.window)
         if self.user_agent:
-            await self.page.setUserAgent(self.user_agent)
+            await self.calibrate_user_agent()
+
+    async def calibrate_user_agent(self, agent=None):
+        agent = self.user_agent if not agent else agent
+        await self.page.setExtraHTTPHeaders(headers={'User-Agent': agent})
+        await self.loop.create_task(self.page.setUserAgent(agent))
 
     def workon_page(self, page_num):
         self.page = self.page_queue[page_num]
