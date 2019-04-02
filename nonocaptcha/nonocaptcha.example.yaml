@@ -18,8 +18,13 @@ paths:
 window:
     width: 1200
     height: 800
-    user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36
 
+# key names should be exactly what you would see in window.navigator in JS-Console
+navigator:
+    userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36
+    browser: chrome
+    # comma deliminated list stating "running" os for navigator
+    os: win # mac, linux
 speech:
     service: pocketsphinx
     deepspeech:

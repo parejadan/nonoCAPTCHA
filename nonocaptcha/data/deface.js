@@ -1,4 +1,4 @@
-// string format replace target_site_recaptcha_anchor
+// string format replace <target_site_recaptcha_anchor>
 () => {
     widget = JQuery("<div id=recaptcha-widget>").appendTo("body");
     parent.window.recapReady = function() {

@@ -48,16 +48,13 @@ class Base(Clicker):
     page_load_timeout = settings['timeout']['page_load'] * 1000
     iframe_timeout = settings['timeout']['iframe'] * 1000
     animation_timeout = settings['timeout']['animation'] * 1000
+    navigator = settings.get('navigator', {})
     deface_data = os.path.join(package_dir, 'data', 'deface.html')
-    jquery_data = os.path.join(package_dir, 'data', 'jquery.js')
-    override_data = os.path.join(package_dir, 'data', 'override.js')
-    js_libs = {}
     executable_path = settings.get('paths', {}).get('executable', None)
     outpath = os.path.join(os.getcwd(), 'data')
     browser_data = os.path.join(outpath, 'browserData')
     slow_down = settings.get('slow_down', None)
     window = settings.get('window', None)
-    user_agent = settings.get('window', {}).get('user_agent', None)
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)

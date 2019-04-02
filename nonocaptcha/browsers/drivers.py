@@ -6,6 +6,7 @@ from user_agent import generate_navigator_js
 
 
 from nonocaptcha.utils.iomanage import load_file
+from nonocaptcha.utils.js import JS_LIBS
 from nonocaptcha.browsers.launcher import Launcher
 from nonocaptcha.base import Base
 from nonocaptcha.exceptions import PageError
@@ -14,15 +15,18 @@ from nonocaptcha.exceptions import PageError
 class RawDriver(Base):
     launcher = None
     browser = None
-    page_queue = []
+    page_manager = None
 
     def __init__(self, options, proxy=None, proxy_auth=None, loop=None, **kwargs):
         super().__init__()
         self.options = merge_dict(options, kwargs)
         self.proxy = f'http://{proxy}' if proxy else proxy
         self.proxy_auth = proxy_auth
-        self.page = None
         self.loop = loop or asyncio.get_event_loop()
+
+    @property
+    def page(self):
+        return self.page_manager.page
 
     async def get_new_browser(self):
         """
@@ -80,49 +84,18 @@ class RawDriver(Base):
             'logLevel': 'CRITICAL'})
         self.launcher = Launcher(self.options)
         self.browser = await self.launcher.launch()
-        self.page_queue = await self.browser.pages()
+        self.page_manager = PageManager(
+            loop=self.loop,
+            browser=self.browser,
+            viewport=self.window,
+            navigator_defaults=self.navigator,
+            timeout=self.page_load_timeout)
         await self.set_newpage()
 
         return self.browser
 
-    async def set_newpage(self, use_default=False):
-        self.page = await self.browser.newPage()
-        if self.window and not use_default:
-            await self.page.setViewport(self.window)
-        if self.user_agent:
-            await self.calibrate_user_agent()
-
-    async def calibrate_user_agent(self, agent=None):
-        agent = self.user_agent if not agent else agent
-        await self.page.setExtraHTTPHeaders(headers={'User-Agent': agent})
-        await self.loop.create_task(self.page.setUserAgent(agent))
-
-    def workon_page(self, page_num):
-        self.page = self.page_queue[page_num]
-
-    def workon_first_page(self):
-        self.workon_page(0)
-
-    async def cloak_navigator(self):
-        """
-        Emulate another browser's navigator properties
-        and set webdriver false, inject jQuery.
-        """
-        jquery_js = await load_file(self.jquery_data)
-        override_js = await load_file(self.override_data)
-        navigator_config = generate_navigator_js(
-            os=('linux', 'mac', 'win'), navigator=('chrome'))
-        navigator_config['mediaDevices'] = False
-        navigator_config['webkitGetUserMedia'] = False
-        navigator_config['mozGetUserMedia'] = False
-        navigator_config['getUserMedia'] = False
-        navigator_config['webkitRTCPeerConnection'] = False
-        navigator_config['webdriver'] = False
-        dump = json.dumps(navigator_config)
-        _navigator = f'const _navigator = {dump};'
-        await self.page.evaluateOnNewDocument(
-            '() => {\n%s\n%s\n%s}' % (_navigator, jquery_js, override_js))
-        return navigator_config['userAgent']
+    async def set_newpage(self):
+        await self.page_manager.set_newpage()
 
     async def cleanup(self):
         if self.launcher:
@@ -133,15 +106,91 @@ class RawDriver(Base):
         """
         Navigate to address
         """
-        user_agent = await self.cloak_navigator()
-        await self.page.setUserAgent(user_agent)
+        await self.page_manager.goto(url)
+
+
+class PageManager:
+    def __init__(self, loop, browser, viewport, navigator_defaults, timeout):
+        self.loop = loop
+        self.browser = browser
+        self.queue = []
+        self.page = None
+        self.viewport = viewport
+        self.navigator_defaults = {
+            'mediaDevices': False,
+            'webkitGetUserMedia': False,
+            'mozGetUserMedia': False,
+            'getUserMedia': False,
+            'webkitRTCPeerConnection': False,
+            'webdriver': False}
+        self.navigator_defaults.update(navigator_defaults)
+        self.navigator_config = {}
+        self.timeout = timeout
+        self.os=navigator_defaults.pop('os', ('win', 'mac', 'linux'))
+
+    @property
+    def user_agent(self):
+        return self.navigator_config.get(
+            'userAgent',
+            self.navigator_defaults.get('userAgent'))
+
+    async def goto(self, url, regenerate_navigator=False):
+        if not self.navigator_config or regenerate_navigator:
+            await self.cloak_navigator()
+        await self.page.setUserAgent(self.user_agent)
         try:
             await self.loop.create_task(
                 self.page.goto(
                     url,
-                    timeout=self.page_load_timeout,
+                    timeout=self.timeout,
                     waitUntil='domcontentloaded',))
         except asyncio.TimeoutError:
-            raise PageError('Page loading timed-out')
-        except Exception as exc:
-            raise PageError(f'Page raised an error: `{exc}`')
+            raise PageError(f'Timeout loading {url}')
+        except Exception as ex:
+            raise PageError(f'While loading [{url}] encountered error{ex}')
+
+    async def cloak_navigator(self):
+        """
+        Emulate another browser's navigator properties
+        and set webdriver false, inject jQuery.
+        """
+        self.navigator_config = generate_navigator_js(
+            os=self.os,
+            navigator=('chrome'))
+        self.navigator_config.update(self.navigator_defaults)
+        await self.resync_navigator()
+
+    async def resync_navigator(self, hard=False):
+        dump = json.dumps(self.navigator_config)
+        _ = f'const _navigator = {dump};'
+        await self.page.evaluateOnNewDocument(
+            '() => {\n%s\n%s\n%s}' % (_, JS_LIBS.jquery, JS_LIBS.override))
+
+        if hard:
+            await self.page.setUserAgent(self.user_agent)
+            await self.sync_request_agent()
+
+    async def sync_request_agent(self):
+        user_agent = self.user_agent
+        if user_agent:
+            await self.page.setExtraHTTPHeaders(
+                headers={'User-Agent': user_agent})
+
+    async def evaluate_user_agent(self):
+        running_agent = await self.page.evaluate('navigator.userAgent')
+        return running_agent
+
+    def workon_tab_number(self, num):
+        self.page = self.page_queue[num]
+
+    def workon_first(self):
+        self.workon_tab_number(0)
+
+    async def set_newpage(self):
+        """
+        Creates a new tab and sets it as the "context" page (self.page)
+        """
+        self.page = await self.browser.newPage()
+        if self.viewport:
+            await self.page.setViewport(self.viewport)
+        await self.sync_request_agent()
