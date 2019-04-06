@@ -160,11 +160,16 @@ class PageManager:
         self.navigator_config.update(self.navigator_defaults)
         await self.resync_navigator()
 
-    async def resync_navigator(self, hard=False):
+    async def resync_navigator(self, hard=False, use_custom_js=False):
+        if use_custom_js:
+            injection = '{\n%s\n%s\n%s}; jQuery.noConflict();' % (_, JS_LIBS.jquery, JS_LIBS.override))
+        else:
+            await self.page.addScriptTag(url='https://code.jquery.com/jquery-3.3.1.slim.min.js')
+            injection = '{\n%s\n%s}' % (_, JS_LIBS.override))
         dump = json.dumps(self.navigator_config)
+
         _ = f'const _navigator = {dump};'
-        await self.page.evaluateOnNewDocument(
-            '() => {\n%s\n%s\n%s}' % (_, JS_LIBS.jquery, JS_LIBS.override))
+        await self.page.evaluateOnNewDocument(f'() => {injection}')
 
         if hard:
             await self.page.setUserAgent(self.user_agent)
